@@ -1,5 +1,145 @@
-export async function getSimklLibrary() {
-  throw new Error("Needs Implementation");
+import axios from "axios";
+import { getEnvValue, setEnvValue } from "./environment";
+import { delay } from "./delay";
+
+export class SimklAPIClient {
+  id: string = "";
+  accessToken: string = "";
+
+  constructor() {
+    this.id = SimklAPIClient.validateClientIdFromEnv();
+    this.accessToken = getEnvValue("SIMKL_ACCESSTOKEN") || "";
+  }
+
+  async init() {
+    this.accessToken = await this.updateAccessToken();
+    return this;
+  }
+
+  static validateClientIdFromEnv(): string {
+    const id = getEnvValue("SIMKL_CLIENTID");
+    if (!id) {
+      throw new Error(
+        "Reauthenticate by setting SIMKL_CLIENTID in your .env file",
+      );
+    }
+    return id;
+  }
+
+  async updateAccessTokenWithClientId(id: string = this.id): Promise<string> {
+    const {
+      data: { user_code, verification_url, expires_in, interval },
+    } = await axios.get<{
+      user_code: string;
+      verification_url: string;
+      expires_in: number;
+      interval: number;
+    }>(
+      `https://api.simkl.com/oauth/pin?client_id=${
+        id ? id : SimklAPIClient.validateClientIdFromEnv()
+      }`,
+    );
+
+    if (!user_code || !verification_url) {
+      console.warn(
+        "Updating AccessToken - Authenticatation Method: ClientId - FAILED",
+      );
+      throw new Error("Invalid user_code or verification_url.");
+    } else if (!interval || !expires_in) {
+      console.warn(
+        "Updating AccessToken - Authenticatation Method: ClientId - FAILED",
+      );
+      throw new Error("Invalid interval or expiry response by api.");
+    }
+
+    console.log(
+      "Open the link and input your code:\n\nLink: " +
+        verification_url +
+        "\nCode: " +
+        user_code,
+    );
+
+    for (let i = 0; i < expires_in; i = i + interval) {
+      console.log(
+        `(${i / interval}/${
+          expires_in / interval
+        }) Polling for response every ${interval} seconds.`,
+      );
+      await delay(interval * 1000);
+      const {
+        data: { access_token },
+      } = await axios.get(
+        `https://api.simkl.com/oauth/pin/${user_code}?client_id=${id}`,
+      );
+      if (access_token) {
+        setEnvValue("SIMKL_ACCESSTOKEN", access_token);
+        return access_token;
+      }
+    }
+
+    throw new Error(
+      "Getting the code timed out. Try restarting the application.",
+    );
+  }
+
+  async updateAccessToken(accessToken = this.accessToken): Promise<string> {
+    if (!accessToken) {
+      return await this.updateAccessTokenWithClientId();
+    }
+    return accessToken;
+  }
+
+  createSimklHeaders() {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.accessToken}`,
+      "simkl-api-key": this.id,
+    };
+  }
+
+  async updateShowsList(shows: SimklShowAddToList[]) {
+    if (shows.length <= 0) {
+      return;
+    }
+    await axios.post(
+      "https://api.simkl.com/sync/add-to-list",
+      { shows: shows },
+      { headers: this.createSimklHeaders() },
+    );
+  }
+
+  async updateMoviesList(movies: SimklMovieAddToList[]) {
+    if (movies.length <= 0) {
+      return;
+    }
+    await axios.post(
+      "https://api.simkl.com/sync/add-to-list",
+      { movies: movies },
+      { headers: this.createSimklHeaders() },
+    );
+  }
+
+  async updateShowsHistory(shows: SimklShowAddToList[]) {
+    if (shows.length <= 0) {
+      return;
+    }
+    await axios.post(
+      "https://api.simkl.com/sync/history",
+      { shows: shows },
+      { headers: this.createSimklHeaders() },
+    );
+  }
+
+  async updateMoviesHistory(movies: SimklMovieAddToList[]) {
+    if (movies.length <= 0) {
+      return;
+    }
+    await axios.post(
+      "https://api.simkl.com/sync/history",
+      { movies: movies },
+      { headers: this.createSimklHeaders() },
+    );
+  }
 }
 
 export interface SimklMovieAddToList {

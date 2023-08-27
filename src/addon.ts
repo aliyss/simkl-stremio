@@ -5,49 +5,62 @@ import {
   addonBuilder,
 } from "stremio-addon-sdk";
 import manifest from "./manifest";
-import { getStremioAuthKey } from "./auth";
-import { getStremioLibrary } from "./utils/stremio";
-import { getEnvValue, setEnvValue } from "./utils/environment";
+import { StremioAPIClient, StremioLibraryObject } from "./utils/stremio";
+import { getEnvValue } from "./utils/environment";
+import {
+  convertFromStremioLibraryToSimklList,
+  convertFromStremioLibraryToSimklWatchHistory,
+} from "./utils/convert";
+import { SimklAPIClient } from "./utils/simkl";
 
 const builder = new addonBuilder(manifest);
 
-let authKey = getEnvValue("STREMIO_AUTHKEY");
-let stremioAuth = {
-  email: getEnvValue("STREMIO_EMAIL"),
-  password: getEnvValue("STREMIO_PASSWORD"),
-};
 let simklSettings = {
-  backfill_series: getEnvValue("SIMKL_BACKFILL_SERIES"),
+  backfill_shows: getEnvValue("SIMKL_BACKFILL_SHOWS"),
   backfill_movies: getEnvValue("SIMKL_BACKFILL_MOVIES"),
+  backfill_modifylist: getEnvValue("SIMKL_BACKFILL_MODIFYLIST"),
 };
 
-let stremioLibrary = [];
+let stremioLibrary: StremioLibraryObject[] = [];
 
 (async () => {
-  if (!authKey && stremioAuth.email && stremioAuth.password) {
-    authKey = await getStremioAuthKey({
-      email: stremioAuth.email,
-      password: stremioAuth.password,
-      authKey: null,
-    });
-    console.warn(
-      "You can now remove STREMIO_EMAIL & STREMIO_PASSWORD if you want. Otherwise it will be used as a fallback.",
-    );
-    setEnvValue("STREMIO_AUTHKEY", authKey || "");
-  } else if (!authKey) {
-    console.error(
-      "Try reauthenticating by adding your STREMIO_EMAIL & STREMIO_PASSWORD to .env",
-    );
-    throw new Error("Invalid .env file!");
-  }
+  const stremioClient = await new StremioAPIClient().init();
+  const simklClient = await new SimklAPIClient().init();
+  if (simklSettings.backfill_movies || simklSettings.backfill_shows) {
+    const stremioLibraryResponse = await stremioClient.getStremioLibrary();
+    if (stremioLibraryResponse) {
+      stremioLibrary = stremioLibraryResponse;
 
-  if (!authKey) {
-    return;
-  }
+      let backfillToList = convertFromStremioLibraryToSimklList(
+        stremioLibrary,
+        (value) => {
+          if (simklSettings.backfill_movies && value.type === "movie") {
+            return true;
+          }
+          if (simklSettings.backfill_shows && value.type === "series") {
+            return true;
+          }
+        },
+      );
 
-  if (simklSettings.backfill_movies || simklSettings.backfill_series) {
-    stremioLibrary = await getStremioLibrary(authKey);
-    console.log(stremioLibrary);
+      let backfillToWatchHistory = convertFromStremioLibraryToSimklWatchHistory(
+        stremioLibrary,
+        (value) => {
+          if (simklSettings.backfill_movies && value.type === "movie") {
+            return true;
+          }
+          if (simklSettings.backfill_shows && value.type === "series") {
+            return true;
+          }
+        },
+      );
+      if (simklSettings.backfill_modifylist) {
+        simklClient.updateMoviesList(backfillToList.movies);
+        simklClient.updateShowsList(backfillToList.shows);
+      }
+      simklClient.updateMoviesHistory(backfillToWatchHistory.movies);
+      simklClient.updateShowsHistory(backfillToWatchHistory.shows);
+    }
   }
 })();
 

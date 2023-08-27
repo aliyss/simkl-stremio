@@ -1,17 +1,21 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { SIMKL_CLIENTID } from "../constants";
 
-// Source: https://stackoverflow.com/a/68780811/7168099
-const envFilePath = path.resolve("./.env");
+export const envFilePath = path.resolve("./.env");
 
-const defaultENV = `
+export const defaultENV = `
 STREMIO_EMAIL=
 STREMIO_PASSWORD=
-STREMIO_PASSWORD=
+STREMIO_AUTHKEY=
 
-SIMKL_BACKFILL_SERIES=true
+SIMKL_CLIENTID=${SIMKL_CLIENTID}
+SIMKL_ACCESSTOKEN=
+
+SIMKL_BACKFILL_SHOWS=true
 SIMKL_BACKFILL_MOVIES=true
+SIMKL_BACKFILL_MODIFYLIST=false
 `;
 try {
   fs.writeFileSync(envFilePath, defaultENV, { flag: "wx" });
@@ -19,11 +23,17 @@ try {
 
 const readEnvVars = () => fs.readFileSync(envFilePath, "utf-8").split(os.EOL);
 
+// Source: https://stackoverflow.com/a/68780811/7168099
 export const getEnvValue = (key: string) => {
   // find the line that contains the key (exact match)
   const matchedLine = readEnvVars().find((line) => line.split("=")[0] === key);
   // split the line (delimiter is '=') and return the item at index 2
-  return matchedLine !== undefined ? matchedLine.split("=")[1] : null;
+  if (matchedLine === undefined) {
+    return null;
+  }
+  let matchedLineSplit = matchedLine.split("=");
+  matchedLineSplit.shift();
+  return matchedLineSplit.join("=");
 };
 
 export const setEnvValue = (key: string, value?: any) => {

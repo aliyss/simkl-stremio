@@ -12,7 +12,11 @@ const manifest: manifest = {
   catalogs: [],
   resources: ["catalog", "meta", "stream", "subtitles"],
   types: ["series", "movie"],
-  behaviorHints: {},
+  behaviorHints: {
+    // @ts-ignore
+    configurable: true,
+    configurationRequired: true,
+  },
 };
 
 export default manifest;
