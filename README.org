@@ -1,0 +1,32 @@
+
+* Table of Contents :toc:
+- [[#info][Info]]
+  - [[#todo][ToDo]]
+- [[#setup][Setup]]
+- [[#what-else][What else?]]
+
+* Info
+Allows for a One-Way Sync from Stremio to Simkl.
+
+Warning: Currently it does not check Simkl if something is already there, so it just pushes Data from stremio.
+
+** ToDo
+ * [ ] Only sync actual diffs
+ * [ ] Sync Lists from Simkl to Stremio
+ * [ ] Sync History from Simkl to Stremio
+ * [X] Sync Lists from Stremio to Simkl (Messy)
+ * [X] Sync History from Stremio to Simkl (Messy)
+ * [ ] Stremio listen to stream events and update Simkl live
+
+* Setup
+
+Start the program. It will automatically generate a .env file. Add your Stremio Credentials (these can be removed later on afaik).
+I currently am at 1000/Requests per day for the clientId in Simkl. So maybe replace that with your own thing... unless you are running it just once to fill your account data.
+
+* What else?
+
+The code is honestly a mess, but I believe that it would be worse of me to showcase a video of it working and then saying I need to clean up the code before pushing it to GitHub. At least in the meantime someone may make use of this.
+
+It's currently a proof of concept. Depending on how much interest there is, I'll clean it up and not just have it workable.
+
+Any pull requests are of course welcome.
