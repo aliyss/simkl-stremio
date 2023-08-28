@@ -8,9 +8,9 @@ import { SimklAPIClient, SimklLibraryObject } from "./simkl";
 import { StremioAPIClient, StremioLibraryObject } from "./stremio";
 
 const simklSettings = {
-  backfill_shows: getEnvValue("SIMKL_BACKFILL_SHOWS"),
-  backfill_movies: getEnvValue("SIMKL_BACKFILL_MOVIES"),
-  backfill_modifylist: getEnvValue("SIMKL_BACKFILL_MODIFYLIST"),
+  backfill_shows: getEnvValue("SIMKL_BACKFILL_SHOWS") === "true",
+  backfill_movies: getEnvValue("SIMKL_BACKFILL_MOVIES") === "true",
+  backfill_modifylist: getEnvValue("SIMKL_BACKFILL_MODIFYLIST") === "true",
 };
 
 export interface GroupedStremioWithSimklObject {
@@ -66,9 +66,6 @@ function stremioToSimklListSyncLogic(
     if (!value.simkl) {
       return true;
     }
-    if (value.simkl.status === "completed") {
-      return;
-    }
     return true;
   }
 }
@@ -91,9 +88,6 @@ function stremioToSimklWatchHistorySyncLogic(
   if (simklSettings.backfill_shows && value.stremio.type === "series") {
     if (!value.simkl) {
       return true;
-    }
-    if (value.simkl.status === "completed") {
-      return;
     }
     return true;
   }

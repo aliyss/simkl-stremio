@@ -140,7 +140,6 @@ export class SimklAPIClient {
     if (shows.length <= 0) {
       return;
     }
-    console.log(shows);
     await axios.post(
       "https://api.simkl.com/sync/history",
       { shows: shows },

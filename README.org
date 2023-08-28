@@ -34,13 +34,13 @@ I plan on adding more checks:
 
 #+begin_src bash
 npm install
-npm build
+npm run build
 #+end_src
 
 *** Start
 Start the program. It will automatically generate a .env file and crash. Add your Stremio Credentials (these can be removed later on afaik). Then restart the application.
 #+begin_src bash
-npm start
+npm run start
 #+end_src
 
 *** Options

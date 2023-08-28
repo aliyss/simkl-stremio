@@ -9,9 +9,14 @@ import {
 import watchedBitfield from "stremio-watched-bitfield";
 import { GroupedStremioWithSimklObject } from "./sync";
 import { getEnvValue } from "./environment";
-import { StremioAPIClient } from "./stremio";
+import {
+  StremioAPIClient,
+  StremioCinemataMetaSeriesData,
+  StremioLibraryObject,
+} from "./stremio";
 
-const backfill_lastepisodefill = getEnvValue("SIMKL_BACKFILL_LASTEPISODEFILL");
+const backfill_lastepisodefill =
+  getEnvValue("SIMKL_BACKFILL_LASTEPISODEFILL") === "true";
 
 function convertStremioDateToSimkl(date: string) {
   return date.split("T")[0] + " " + date.split("T")[1].split(".")[0];
@@ -21,6 +26,39 @@ export function convertSimklLibraryToSimklLibraryObjectArray(
   simklLibrary: SimklLibrary,
 ): SimklLibraryObject[] {
   return [...simklLibrary.movies, ...simklLibrary.shows];
+}
+
+export function convertFromStremioLibraryToSimklListMovie(
+  stremio: StremioLibraryObject,
+) {
+  let movieObject: SimklMovieAddToList = {
+    ids: { imdb: stremio._id },
+  };
+  if (stremio.state.flaggedWatched || stremio.state.timesWatched) {
+    movieObject.to = "completed";
+    movieObject.watched_at = convertStremioDateToSimkl(
+      stremio.state.lastWatched,
+    );
+  } else {
+    movieObject.to = "plantowatch";
+  }
+  return movieObject;
+}
+
+export function convertFromStremioLibraryToSimklListShow(
+  stremio: StremioLibraryObject,
+) {
+  let showObject: SimklShowAddToList = {
+    ids: { imdb: stremio._id },
+  };
+  if (stremio.state.flaggedWatched) {
+    showObject.to = "completed";
+  } else if (stremio.state.season === 0 && stremio.state.episode === 0) {
+    showObject.to = "plantowatch";
+  } else {
+    showObject.to = "watching";
+  }
+  return showObject;
 }
 
 export function convertFromStremioLibraryToSimklList(
@@ -42,37 +80,144 @@ export function convertFromStremioLibraryToSimklList(
 
   for (let s = 0; s < filtered.length; s++) {
     const e = filtered[s];
-    if (e.stremio?.type === "movie") {
-      let movieObject: SimklMovieAddToList = {
-        ids: { imdb: e.stremio?._id },
-      };
-      if (e.stremio?.state.flaggedWatched || e.stremio?.state.timesWatched) {
-        movieObject.to = "completed";
-        movieObject.watched_at = convertStremioDateToSimkl(
-          e.stremio?.state.lastWatched,
-        );
-      } else {
-        movieObject.to = "plantowatch";
+    if (!e.stremio) {
+      continue;
+    }
+    if (e.stremio.type === "movie") {
+      let movie = convertFromStremioLibraryToSimklListMovie(e.stremio);
+      if (movie) {
+        movies.push(movie);
       }
-      movies.push(movieObject);
-    } else if (e.stremio?.type === "series") {
-      let showObject: SimklShowAddToList = {
-        ids: { imdb: e.stremio?._id },
-      };
-      if (e.stremio?.state.flaggedWatched) {
-        showObject.to = "completed";
-      } else if (
-        e.stremio?.state.season === 0 &&
-        e.stremio?.state.episode === 0
-      ) {
-        showObject.to = "plantowatch";
-      } else {
-        showObject.to = "watching";
+    } else if (e.stremio.type === "series") {
+      let show = convertFromStremioLibraryToSimklListMovie(e.stremio);
+      if (show) {
+        shows.push(show);
       }
-      shows.push(showObject);
     }
   }
   return { shows, movies };
+}
+
+export function convertFromStremioLibraryToSimklWatchHistoryMovie(
+  stremio: StremioLibraryObject,
+) {
+  let movieObject: SimklMovieAddToList = {
+    ids: { imdb: stremio._id },
+  };
+  if (stremio.state.flaggedWatched || stremio.state.timesWatched) {
+    movieObject.watched_at = convertStremioDateToSimkl(
+      stremio.state.lastWatched,
+    );
+  }
+  return movieObject;
+}
+
+function convertCinemetaMetaValuesToStremioVideoId(
+  cinemeta: StremioCinemataMetaSeriesData | undefined,
+  id: string,
+) {
+  if (!cinemeta) {
+    return [];
+  }
+
+  return cinemeta.meta.videos
+    .filter((e) => e.season > 0)
+    .concat(cinemeta.meta.videos.filter((e) => e.season === 0))
+    .map((v) => id + ":" + v.season + ":" + v.number);
+}
+
+export async function convertCinemataToStremioWatchedBitField(
+  stremio: StremioLibraryObject,
+) {
+  const cinemataValues = await StremioAPIClient.getCinemetaMeta(stremio._id);
+  if (!cinemataValues) {
+    throw "Not found";
+  }
+
+  const episodeList = convertCinemetaMetaValuesToStremioVideoId(
+    cinemataValues,
+    stremio._id,
+  );
+
+  let wb: any;
+  if (stremio.state.watched) {
+    wb = watchedBitfield.constructAndResize(
+      stremio.state.watched,
+      episodeList || [],
+    );
+  }
+  return { episodeList, wb };
+}
+
+export async function convertFromStremioLibraryToSimklWatchHistoryShow(
+  stremio: StremioLibraryObject,
+) {
+  let showObject: SimklShowAddToList = {
+    ids: { imdb: stremio._id },
+  };
+
+  if (stremio.state.flaggedWatched) {
+    showObject.watched_at = convertStremioDateToSimkl(
+      stremio.state.lastWatched,
+    );
+  }
+
+  if (stremio.state.season === 0 && stremio.state.episode === 0) {
+    return showObject;
+  }
+
+  let episodeList: string[] = [];
+  let wb: any = null;
+
+  if (!backfill_lastepisodefill) {
+    try {
+      let response = await convertCinemataToStremioWatchedBitField(stremio);
+      episodeList = response.episodeList;
+      wb = response.wb;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  showObject.seasons = [];
+  for (
+    let i = 0;
+    i <
+    (stremio.state.watched
+      ? parseInt(stremio.state.watched.split(":")[1])
+      : stremio.state.season);
+    i++
+  ) {
+    let season: SimklShowSeasonAddToList = {
+      number: i + 1,
+    };
+    if (backfill_lastepisodefill) {
+      season.watched_at = convertStremioDateToSimkl(stremio.state.lastWatched);
+      if (stremio.state.season === i + 1) {
+        season.episodes = [];
+        for (let j = 0; j < stremio.state.episode; j++) {
+          let episode = j + 1;
+          season.episodes.push({
+            number: episode,
+          });
+        }
+      }
+    } else {
+      season.episodes = [];
+      episodeList
+        .filter((v) => v.split(":")[1] === season.number?.toString())
+        .forEach((ep) => {
+          const splitEp = parseInt(ep.split(":")[2]);
+          if (wb && wb.getVideo(ep)) {
+            if (season.episodes && !season.episodes[splitEp - 1]) {
+              season.episodes.push({ number: splitEp });
+            }
+          }
+        });
+    }
+    showObject.seasons.push(season);
+  }
+  return showObject;
 }
 
 export async function convertFromStremioLibraryToSimklWatchHistory(
@@ -94,90 +239,23 @@ export async function convertFromStremioLibraryToSimklWatchHistory(
 
   for (let s = 0; s < filtered.length; s++) {
     const e = filtered[s];
-    if (e.stremio?.type === "movie") {
-      let movieObject: SimklMovieAddToList = {
-        ids: { imdb: e.stremio?._id },
-      };
-      if (e.stremio?.state.flaggedWatched || e.stremio?.state.timesWatched) {
-        movieObject.watched_at = convertStremioDateToSimkl(
-          e.stremio?.state.lastWatched,
-        );
-        movies.push(movieObject);
+    if (!e.stremio) {
+      continue;
+    }
+    if (e.stremio.type === "movie") {
+      const movie = convertFromStremioLibraryToSimklWatchHistoryMovie(
+        e.stremio,
+      );
+      if (movie) {
+        movies.push(movie);
       }
-    } else if (e.stremio?.type === "series") {
-      let showObject: SimklShowAddToList = {
-        ids: { imdb: e.stremio?._id },
-      };
-      if (e.stremio?.state.flaggedWatched) {
-        showObject.watched_at = convertStremioDateToSimkl(
-          e.stremio?.state.lastWatched,
-        );
+    } else if (e.stremio.type === "series") {
+      const show = await convertFromStremioLibraryToSimklWatchHistoryShow(
+        e.stremio,
+      );
+      if (show) {
+        shows.push(show);
       }
-      if (e.stremio?.state.season === 0 && e.stremio?.state.episode === 0) {
-      } else {
-        showObject.seasons = [];
-        let episodeList: string[] = [];
-        let wb: any = null;
-        if (!backfill_lastepisodefill) {
-          try {
-            const cinemataValues = await StremioAPIClient.getCinemetaMeta(
-              e.stremio._id,
-            );
-            if (!cinemataValues) {
-              throw "Not found";
-            }
-            episodeList =
-              cinemataValues?.meta.videos
-                .filter((e) => e.season > 0)
-                .concat(
-                  cinemataValues.meta.videos.filter((e) => e.season === 0),
-                )
-                .map((v) => e.stremio?._id + ":" + v.season + ":" + v.number) ||
-              [];
-            if (e.stremio.state.watched) {
-              wb = watchedBitfield.constructAndResize(
-                e.stremio?.state.watched,
-                episodeList || [],
-              );
-            }
-          } catch (e) {
-            console.log(e);
-          }
-        }
-        for (let i = 0; i < e.stremio?.state.season; i++) {
-          let season: SimklShowSeasonAddToList = {
-            number: i + 1,
-          };
-          if (backfill_lastepisodefill) {
-            season.watched_at = convertStremioDateToSimkl(
-              e.stremio?.state.lastWatched,
-            );
-            if (e.stremio?.state.season === i + 1) {
-              season.episodes = [];
-              for (let j = 0; j < e.stremio?.state.episode; j++) {
-                let episode = j + 1;
-                season.episodes.push({
-                  number: episode,
-                });
-              }
-            }
-          } else {
-            season.episodes = [];
-            episodeList
-              .filter((v) => v.split(":")[1] === season.number?.toString())
-              .forEach((ep) => {
-                const splitEp = parseInt(ep.split(":")[2]);
-                if (wb && wb.getVideo(ep)) {
-                  if (season.episodes && !season.episodes[splitEp - 1]) {
-                    season.episodes.push({ number: splitEp });
-                  }
-                }
-              });
-          }
-          showObject.seasons.push(season);
-        }
-      }
-      shows.push(showObject);
     }
   }
   return { shows, movies };
