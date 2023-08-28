@@ -18,7 +18,7 @@ import {
 const backfill_lastepisodefill =
   getEnvValue("SIMKL_BACKFILL_LASTEPISODEFILL") === "true";
 
-function convertStremioDateToSimkl(date: string) {
+export function convertStremioDateToSimkl(date: string) {
   return date.split("T")[0] + " " + date.split("T")[1].split(".")[0];
 }
 
@@ -32,6 +32,7 @@ export function convertFromStremioLibraryToSimklListMovie(
   stremio: StremioLibraryObject,
 ) {
   let movieObject: SimklMovieAddToList = {
+    title: stremio.name,
     ids: { imdb: stremio._id },
   };
   if (stremio.state.flaggedWatched || stremio.state.timesWatched) {
@@ -49,6 +50,7 @@ export function convertFromStremioLibraryToSimklListShow(
   stremio: StremioLibraryObject,
 ) {
   let showObject: SimklShowAddToList = {
+    title: stremio.name,
     ids: { imdb: stremio._id },
   };
   if (stremio.state.flaggedWatched) {

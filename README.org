@@ -9,23 +9,23 @@
 Allows for a One-Way Sync from Stremio to Simkl. Plan is to have a Two-Way Sync
 
 *** Warning
-Currently the sync will by default not update the list unless SIMKL BACKFILL MODIFYLIST is set to true.
-This is mainly, since I haven't double-checked if everything works.
+Currently the sync will by default not update the list unless _SIMKL_BACKFILL_MODIFYLIST_ is set to true.
 
 However there are some checks in place for backfilling:
- * Ignored if Simkl already marked as complete
+ * List Update: Ignored if Simkl already marked as complete
+ * List Update: Ignored if Simkl already has the item and _SIMKL_BACKFILL_MODIFYLIST_ is false
+ * Watch History Update (Movie): Ignored if Simkl already marked as complete
+ * Watch History Update (Show): Ignored if Simkl lastWatched is greater than Stremio
 
-I plan on adding more checks:
- * Stremio Date Checks to make sure diffs are managed correctly and only when necessary.
- * Simkl Date Checks to make sure diffs are managed correctly and only when necessary.
- * Watch Check based on if Stremio or Simkl is further along with show progress.
+I plan on adding more checks to limit and only process necessary items:
+ * If you have any more checks to recommend feel free to open an issue.
 
 ** ToDo
- * [-] Only sync actual diffs (partial)
+ * [X] Only sync actual diffs
  * [ ] Sync Lists from Simkl to Stremio
  * [ ] Sync History from Simkl to Stremio
- * [X] Sync Lists from Stremio to Simkl (Messy)
- * [X] Sync History from Stremio to Simkl (Messy)
+ * [X] Sync Lists from Stremio to Simkl
+ * [X] Sync History from Stremio to Simkl
  * [ ] Stremio listen to stream events and update Simkl live
 
 * Setup
@@ -51,7 +51,7 @@ STREMIO_EMAIL=    # Fill this in manually
 STREMIO_PASSWORD= # Fill this in manually
 STREMIO_AUTHKEY=  # Not Necessary will be done automatically
 
-SIMKL_CLIENTID=    # Not Necessary, but would appreciate it if you use your own Simkl Client
+SIMKL_CLIENTID=    # Now Necessary, due to the CLIENTID hitting it's rate limit
 SIMKL_ACCESSTOKEN= # Not Necessary will be done automatically
 
 # If these are enabled it will at minimum sync the watch history

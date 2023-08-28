@@ -102,14 +102,14 @@ export class SimklAPIClient {
   }
 
   async getLibrary() {
-    const { data } = await axios.get(`https://api.simkl.com/sync/all-items/`, {
+    const { data } = await axios.get(`https://api.simkl.com/sync/all-items`, {
       headers: this.createSimklHeaders(),
     });
     if (data.movies && data.movies.length > 0) {
       this.library.movies = data.movies;
     }
     if (data.shows && data.shows.length > 0) {
-      this.library.shows = data.shows;
+      this.library.shows = [...data.shows, ...data.anime];
     }
     return this.library;
   }
@@ -118,48 +118,53 @@ export class SimklAPIClient {
     if (shows.length <= 0) {
       return;
     }
-    await axios.post(
+    const { data } = await axios.post(
       "https://api.simkl.com/sync/add-to-list",
       { shows: shows },
       { headers: this.createSimklHeaders() },
     );
+    return data;
   }
 
   async updateMoviesList(movies: SimklMovieAddToList[]) {
     if (movies.length <= 0) {
       return;
     }
-    await axios.post(
+    const { data } = await axios.post(
       "https://api.simkl.com/sync/add-to-list",
       { movies: movies },
       { headers: this.createSimklHeaders() },
     );
+    return data;
   }
 
   async updateShowsHistory(shows: SimklShowAddToList[]) {
     if (shows.length <= 0) {
       return;
     }
-    await axios.post(
+    const { data } = await axios.post(
       "https://api.simkl.com/sync/history",
       { shows: shows },
       { headers: this.createSimklHeaders() },
     );
+    return data;
   }
 
   async updateMoviesHistory(movies: SimklMovieAddToList[]) {
     if (movies.length <= 0) {
       return;
     }
-    await axios.post(
+    const { data } = await axios.post(
       "https://api.simkl.com/sync/history",
       { movies: movies },
       { headers: this.createSimklHeaders() },
     );
+    return data;
   }
 }
 
 export interface SimklMovieAddToList {
+  title?: string;
   ids: {
     imdb: string;
   };
@@ -179,6 +184,7 @@ export interface SimklShowSeasonAddToList {
 }
 
 export interface SimklShowAddToList {
+  title?: string;
   ids: {
     imdb: string;
   };

@@ -2,6 +2,7 @@ import {
   convertFromStremioLibraryToSimklList,
   convertFromStremioLibraryToSimklWatchHistory,
   convertSimklLibraryToSimklLibraryObjectArray,
+  convertStremioDateToSimkl,
 } from "./convert";
 import { getEnvValue } from "./environment";
 import { SimklAPIClient, SimklLibraryObject } from "./simkl";
@@ -60,13 +61,17 @@ function stremioToSimklListSyncLogic(
     if (value.simkl.status === "completed") {
       return;
     }
-    return true;
+    if (simklSettings.backfill_modifylist) {
+      return true;
+    }
   }
   if (simklSettings.backfill_shows && value.stremio.type === "series") {
     if (!value.simkl) {
       return true;
     }
-    return true;
+    if (simklSettings.backfill_modifylist) {
+      return true;
+    }
   }
 }
 
@@ -88,6 +93,16 @@ function stremioToSimklWatchHistorySyncLogic(
   if (simklSettings.backfill_shows && value.stremio.type === "series") {
     if (!value.simkl) {
       return true;
+    }
+    if (!value.stremio.state.watched) {
+      return;
+    }
+    if (
+      value.simkl.last_watched_at &&
+      new Date(convertStremioDateToSimkl(value.stremio.state.lastWatched)) <
+        new Date(value.simkl.last_watched_at)
+    ) {
+      return;
     }
     return true;
   }
@@ -114,16 +129,14 @@ export async function backfillFromStremioToSimkl(
     stremioToSimklListSyncLogic,
   );
 
+  await simklClient.updateMoviesList(backfillToList.movies);
+  await simklClient.updateShowsList(backfillToList.shows);
+
   let backfillToWatchHistory =
     await convertFromStremioLibraryToSimklWatchHistory(
       groupedLibrary,
       stremioToSimklWatchHistorySyncLogic,
     );
-
-  if (simklSettings.backfill_modifylist) {
-    await simklClient.updateMoviesList(backfillToList.movies);
-    await simklClient.updateShowsList(backfillToList.shows);
-  }
 
   await simklClient.updateMoviesHistory(backfillToWatchHistory.movies);
   await simklClient.updateShowsHistory(backfillToWatchHistory.shows);
