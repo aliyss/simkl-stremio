@@ -9,8 +9,12 @@ import { SimklAPIClient, SimklLibraryObject } from "./simkl";
 import { StremioAPIClient, StremioLibraryObject } from "./stremio";
 
 const simklSettings = {
-  backfill_shows: getEnvValue("SIMKL_BACKFILL_SHOWS") === "true",
-  backfill_movies: getEnvValue("SIMKL_BACKFILL_MOVIES") === "true",
+  backfill_listshows: getEnvValue("SIMKL_BACKFILL_LISTSHOWS") === "true",
+  backfill_listmovies: getEnvValue("SIMKL_BACKFILL_LISTMOVIES") === "true",
+  backfill_watchhistoryshows:
+    getEnvValue("SIMKL_BACKFILL_WATCHHISTORYSHOWS") === "true",
+  backfill_watchhistorymovies:
+    getEnvValue("SIMKL_BACKFILL_WATCHHISTORYMOVIES") === "true",
   backfill_modifylist: getEnvValue("SIMKL_BACKFILL_MODIFYLIST") === "true",
 };
 
@@ -54,7 +58,7 @@ function stremioToSimklListSyncLogic(
   if (!value.stremio) {
     return;
   }
-  if (simklSettings.backfill_movies && value.stremio.type === "movie") {
+  if (simklSettings.backfill_listmovies && value.stremio.type === "movie") {
     if (!value.simkl) {
       return true;
     }
@@ -65,7 +69,7 @@ function stremioToSimklListSyncLogic(
       return true;
     }
   }
-  if (simklSettings.backfill_shows && value.stremio.type === "series") {
+  if (simklSettings.backfill_listshows && value.stremio.type === "series") {
     if (!value.simkl) {
       return true;
     }
@@ -81,7 +85,10 @@ function stremioToSimklWatchHistorySyncLogic(
   if (!value.stremio) {
     return;
   }
-  if (simklSettings.backfill_movies && value.stremio.type === "movie") {
+  if (
+    simklSettings.backfill_watchhistorymovies &&
+    value.stremio.type === "movie"
+  ) {
     if (!value.simkl) {
       return true;
     }
@@ -90,7 +97,10 @@ function stremioToSimklWatchHistorySyncLogic(
     }
     return true;
   }
-  if (simklSettings.backfill_shows && value.stremio.type === "series") {
+  if (
+    simklSettings.backfill_watchhistoryshows &&
+    value.stremio.type === "series"
+  ) {
     if (!value.simkl) {
       return true;
     }
@@ -111,12 +121,8 @@ function stremioToSimklWatchHistorySyncLogic(
 export async function backfillFromStremioToSimkl(
   stremioClient: StremioAPIClient,
   simklClient: SimklAPIClient,
+  force = false,
 ) {
-  if (!simklSettings.backfill_shows && !simklSettings.backfill_movies) {
-    console.log("Skipping Backup");
-    return;
-  }
-
   const stremioLibrary = await stremioClient.getLibrary();
   const simklLibrary = await simklClient.getLibrary();
 
@@ -125,20 +131,32 @@ export async function backfillFromStremioToSimkl(
     convertSimklLibraryToSimklLibraryObjectArray(simklLibrary),
   );
 
-  let backfillToList = convertFromStremioLibraryToSimklList(
-    groupedLibrary,
-    stremioToSimklListSyncLogic,
-  );
-
-  await simklClient.updateMoviesList(backfillToList.movies);
-  await simklClient.updateShowsList(backfillToList.shows);
-
-  let backfillToWatchHistory =
-    await convertFromStremioLibraryToSimklWatchHistory(
+  if (
+    simklSettings.backfill_listshows ||
+    simklSettings.backfill_listmovies ||
+    force
+  ) {
+    let backfillToList = convertFromStremioLibraryToSimklList(
       groupedLibrary,
-      stremioToSimklWatchHistorySyncLogic,
+      stremioToSimklListSyncLogic,
     );
 
-  await simklClient.updateMoviesHistory(backfillToWatchHistory.movies);
-  await simklClient.updateShowsHistory(backfillToWatchHistory.shows);
+    await simklClient.updateMoviesList(backfillToList.movies);
+    await simklClient.updateShowsList(backfillToList.shows);
+  }
+
+  if (
+    simklSettings.backfill_watchhistoryshows ||
+    simklSettings.backfill_watchhistorymovies ||
+    force
+  ) {
+    let backfillToWatchHistory =
+      await convertFromStremioLibraryToSimklWatchHistory(
+        groupedLibrary,
+        stremioToSimklWatchHistorySyncLogic,
+      );
+
+    await simklClient.updateMoviesHistory(backfillToWatchHistory.movies);
+    await simklClient.updateShowsHistory(backfillToWatchHistory.shows);
+  }
 }

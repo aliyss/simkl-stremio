@@ -50,7 +50,7 @@ builder.defineSubtitlesHandler(async (args) => {
   }
 
   setTimeout(async function () {
-    await backfillFromStremioToSimkl(stremioClient, simklClient);
+    await backfillFromStremioToSimkl(stremioClient, simklClient, true);
   }, timeout);
 
   return Promise.resolve({ subtitles: [] });
