@@ -16,6 +16,7 @@ SIMKL_ACCESSTOKEN=
 SIMKL_BACKFILL_SHOWS=true
 SIMKL_BACKFILL_MOVIES=true
 SIMKL_BACKFILL_MODIFYLIST=false
+SIMKL_BACKFILL_LASTEPISODEFILL=false
 `;
 try {
   fs.writeFileSync(envFilePath, defaultENV, { flag: "wx" });

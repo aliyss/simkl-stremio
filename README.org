@@ -6,12 +6,22 @@
 - [[#what-else][What else?]]
 
 * Info
-Allows for a One-Way Sync from Stremio to Simkl.
+Allows for a One-Way Sync from Stremio to Simkl. Plan is to have a Two-Way Sync
 
-Warning: Currently it does not check Simkl if something is already there, so it just pushes Data from stremio.
+*** Warning
+Currently the sync will by default not update the list unless SIMKL BACKFILL MODIFYLIST is set to true.
+This is mainly, since I haven't double-checked if everything works.
+
+However there are some checks in place for backfilling:
+ * Ignored if Simkl already marked as complete
+
+I plan on adding more checks:
+ * Stremio Date Checks to make sure diffs are managed correctly and only when necessary.
+ * Simkl Date Checks to make sure diffs are managed correctly and only when necessary.
+ * Watch Check based on if Stremio or Simkl is further along with show progress.
 
 ** ToDo
- * [ ] Only sync actual diffs
+ * [-] Only sync actual diffs (partial)
  * [ ] Sync Lists from Simkl to Stremio
  * [ ] Sync History from Simkl to Stremio
  * [X] Sync Lists from Stremio to Simkl (Messy)
@@ -20,8 +30,42 @@ Warning: Currently it does not check Simkl if something is already there, so it 
 
 * Setup
 
-Start the program. It will automatically generate a .env file. Add your Stremio Credentials (these can be removed later on afaik).
-I currently am at 1000/Requests per day for the clientId in Simkl. So maybe replace that with your own thing... unless you are running it just once to fill your account data.
+*** Build
+
+#+begin_src bash
+npm install
+npm build
+#+end_src
+
+*** Start
+Start the program. It will automatically generate a .env file and crash. Add your Stremio Credentials (these can be removed later on afaik). Then restart the application.
+#+begin_src bash
+npm start
+#+end_src
+
+*** Options
+Following Options are available:
+#+begin_src env
+
+STREMIO_EMAIL=    # Fill this in manually
+STREMIO_PASSWORD= # Fill this in manually
+STREMIO_AUTHKEY=  # Not Necessary will be done automatically
+
+SIMKL_CLIENTID=    # Not Necessary, but would appreciate it if you use your own Simkl Client
+SIMKL_ACCESSTOKEN= # Not Necessary will be done automatically
+
+# If these are enabled it will at minimum sync the watch history
+SIMKL_BACKFILL_SHOWS=true # Option if it should sync shows to simkl on boot
+SIMKL_BACKFILL_MOVIES=true # Option if it should sync movies to simkl on boot
+
+# If this is enabled it will add shows and movies to the list, but also move them around on simkl using stremio as the leader.
+SIMKL_BACKFILL_MODIFYLIST=false
+
+# If this is enabled it will disregard specific watched episodes for shows, but instead mark all previous shows before the current as watched.
+# Use this if you more often than not forget to mark episodes as watched.
+SIMKL_BACKFILL_LASTEPISODEFILL=false
+
+#+end_src
 
 * What else?
 

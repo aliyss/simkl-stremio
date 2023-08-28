@@ -5,6 +5,10 @@ import { delay } from "./delay";
 export class SimklAPIClient {
   id: string = "";
   accessToken: string = "";
+  library: SimklLibrary = {
+    movies: [],
+    shows: [],
+  };
 
   constructor() {
     this.id = SimklAPIClient.validateClientIdFromEnv();
@@ -97,6 +101,19 @@ export class SimklAPIClient {
     };
   }
 
+  async getLibrary() {
+    const { data } = await axios.get(`https://api.simkl.com/sync/all-items/`, {
+      headers: this.createSimklHeaders(),
+    });
+    if (data.movies && data.movies.length > 0) {
+      this.library.movies = data.movies;
+    }
+    if (data.shows && data.shows.length > 0) {
+      this.library.shows = data.shows;
+    }
+    return this.library;
+  }
+
   async updateShowsList(shows: SimklShowAddToList[]) {
     if (shows.length <= 0) {
       return;
@@ -123,6 +140,7 @@ export class SimklAPIClient {
     if (shows.length <= 0) {
       return;
     }
+    console.log(shows);
     await axios.post(
       "https://api.simkl.com/sync/history",
       { shows: shows },
@@ -168,4 +186,48 @@ export interface SimklShowAddToList {
   to?: string;
   watched_at?: string;
   seasons?: SimklShowSeasonAddToList[];
+}
+
+export interface SimklLibraryObjectShow {
+  title: string;
+  poster: string;
+  year: number;
+  ids: {
+    simkl: number;
+    imdb: string;
+  };
+}
+
+export interface SimklLibraryObjectMovie {
+  title: string;
+  poster: string;
+  year: number;
+  ids: {
+    simkl: number;
+    imdb: string;
+  };
+}
+
+export interface SimklLibraryObjectBase {
+  last_watched_at: string | null;
+  user_rating: number | null;
+  status: "watching" | "plantowatch" | "hold" | "completed" | "dropped";
+}
+
+export interface SimklLibraryShowObject extends SimklLibraryObjectBase {
+  show: SimklLibraryObjectShow;
+}
+
+export interface SimklLibraryMovieObject extends SimklLibraryObjectBase {
+  movie: SimklLibraryObjectMovie;
+}
+
+export type SimklLibraryObject = SimklLibraryObjectBase & {
+  show?: SimklLibraryObjectShow;
+  movie?: SimklLibraryObjectMovie;
+};
+
+export interface SimklLibrary {
+  movies: SimklLibraryMovieObject[];
+  shows: SimklLibraryShowObject[];
 }

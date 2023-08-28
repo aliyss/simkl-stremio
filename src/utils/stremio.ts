@@ -8,6 +8,7 @@ export interface StremioCredentials {
 
 export class StremioAPIClient {
   authKey: string = "";
+  library: StremioLibraryObject[] = [];
 
   constructor() {
     this.authKey = getEnvValue("STREMIO_AUTHKEY") || "";
@@ -80,10 +81,10 @@ export class StremioAPIClient {
     return result.authKey;
   }
 
-  async getStremioLibrary(
+  async getLibrary(
     authKey = this.authKey,
     retry = false,
-  ): Promise<StremioLibraryObject[] | null> {
+  ): Promise<StremioLibraryObject[]> {
     let {
       data: { result, error },
     } = await axios.post<{ result: StremioLibraryObject[]; error: any }>(
@@ -102,12 +103,36 @@ export class StremioAPIClient {
     );
     if (!result && !retry) {
       this.authKey = await StremioAPIClient.updateAuthKeyWithAuthKey(authKey);
-      return this.getStremioLibrary(this.authKey, true);
+      return this.getLibrary(this.authKey, true);
     } else if (!result) {
       throw new Error(JSON.stringify(error));
     }
-    return result;
+    this.library = result;
+    return this.library;
   }
+
+  static async getCinemetaMeta(id: string) {
+    try {
+      const { data } = await axios.get<StremioCinemataMetaSeriesData>(
+        `https://v3-cinemeta.strem.io/meta/series/${id}.json`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      return data;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+}
+
+export interface StremioCinemataMetaSeriesData {
+  meta: {
+    id: string;
+    videos: { season: number; number: number }[];
+  };
 }
 
 export interface StremioLibraryObjectState {
