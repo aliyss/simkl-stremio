@@ -111,10 +111,10 @@ export class StremioAPIClient {
     return this.library;
   }
 
-  static async getCinemetaMeta(id: string) {
+  static async getCinemetaMeta(id: string, type = "series") {
     try {
       const { data } = await axios.get<StremioCinemataMetaSeriesData>(
-        `https://v3-cinemeta.strem.io/meta/series/${id}.json`,
+        `https://v3-cinemeta.strem.io/meta/${type}/${id}.json`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -132,6 +132,7 @@ export interface StremioCinemataMetaSeriesData {
   meta: {
     id: string;
     videos: { season: number; number: number }[];
+    runtime: string;
   };
 }
 

@@ -10,12 +10,13 @@ const manifest: manifest = {
   logo: "https://avatars.githubusercontent.com/u/9755912?s=200&v=4",
   background: "",
   catalogs: [],
+  // @ts-ignore
   resources: ["catalog", "meta", "stream", "subtitles"],
   types: ["series", "movie"],
   behaviorHints: {
     // @ts-ignore
     configurable: true,
-    configurationRequired: true,
+    configurationRequired: false,
   },
 };
 

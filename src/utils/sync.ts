@@ -113,6 +113,7 @@ export async function backfillFromStremioToSimkl(
   simklClient: SimklAPIClient,
 ) {
   if (!simklSettings.backfill_shows && !simklSettings.backfill_movies) {
+    console.log("Skipping Backup");
     return;
   }
 

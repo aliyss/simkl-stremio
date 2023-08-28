@@ -10,24 +10,26 @@ import { SimklAPIClient } from "./utils/simkl";
 import { backfillFromStremioToSimkl } from "./utils/sync";
 
 const builder = new addonBuilder(manifest);
+const stremioClient = new StremioAPIClient();
+const simklClient = new SimklAPIClient();
 
 (async () => {
-  const stremioClient = await new StremioAPIClient().init();
-  const simklClient = await new SimklAPIClient().init();
+  await stremioClient.init();
+  await simklClient.init();
 
   await backfillFromStremioToSimkl(stremioClient, simklClient);
 })();
 
 builder.defineCatalogHandler(async (args) => {
-  console.log(args);
+  // console.log(args, "catalog");
 
   let metas: MetaPreview[] = [];
 
   return { metas };
 });
 
-builder.defineMetaHandler(async ({ id, type }) => {
-  console.log(id, type);
+builder.defineMetaHandler(async (args) => {
+  // console.log(args, "meta");
 
   let meta: MetaDetail = null as unknown as MetaDetail;
 
@@ -35,13 +37,27 @@ builder.defineMetaHandler(async ({ id, type }) => {
 });
 
 builder.defineSubtitlesHandler(async (args) => {
-  console.log(args);
+  // console.log(args, "subtitles");
+
+  let info = await StremioAPIClient.getCinemetaMeta(
+    args.id.split(":")[0],
+    args.type,
+  );
+
+  let timeout = 0;
+  if (info?.meta.runtime) {
+    timeout = parseInt(info.meta.runtime.split(" ")[0]) * 60 * 1000;
+  }
+
+  setTimeout(async function () {
+    await backfillFromStremioToSimkl(stremioClient, simklClient);
+  }, timeout);
 
   return Promise.resolve({ subtitles: [] });
 });
 
 builder.defineStreamHandler(async ({ id, type }) => {
-  console.log(id, type, "here");
+  // console.log(id, type, "stream");
 
   let streams: Stream[] = [];
 
