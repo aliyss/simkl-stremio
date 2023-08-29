@@ -8,15 +8,13 @@ import {
 // @ts-ignore
 import watchedBitfield from "stremio-watched-bitfield";
 import { GroupedStremioWithSimklObject } from "./sync";
-import { getEnvValue } from "./environment";
 import {
   StremioAPIClient,
   StremioCinemataMetaSeriesData,
   StremioLibraryObject,
 } from "./stremio";
 
-const backfill_lastepisodefill =
-  getEnvValue("SIMKL_BACKFILL_LASTEPISODEFILL") === "true";
+const backfill_lastepisodefill = false;
 
 export function convertStremioDateToSimkl(date: string) {
   return date.split("T")[0] + " " + date.split("T")[1].split(".")[0];
