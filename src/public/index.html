@@ -7,15 +7,19 @@
   </head>
   <body>
     <h1>Settings</h1>
-    <form id="stremio_credentials">
-      <label for="email">Stremio E-Mail:</label><br />
-      <input type="email" id="email" name="email" value="" /><br />
-      <label for="password">Stremio Password</label><br />
-      <input type="password" id="password" name="password" value="" /><br />
+    <div id="stremio_credentials">
+      <p>
+        Open Link:
+        <a id="stremio_link" href="" target="_blank"> Getting Link... </a>
+      </p>
+      <div style="display: none">
+        <label for="stremio_pin">Stremio Code</label><br />
+        <input id="stremio_pin" value="" />
+      </div>
       <p id="stremio_credentials_error" style="color: red"></p>
-      <br />
-      <input type="submit" value="Submit" />
-    </form>
+      After you are done come back and click this
+      <input id="stremio_verify" type="submit" value="Submit" />
+    </div>
     <form id="simkl_auth" style="display: none">
       <label for="clientid">Simkl Client Id</label><br />
       <input type="text" id="clientid" name="clientid" value="" /><br />
@@ -25,8 +29,10 @@
     </form>
     <div id="simkl_auth_confirm" style="display: none">
       <p>Open Link: <a id="simkl_link" target="_blank"></a></p>
-      <label for="simkl_pin">Simkl Code (Copy this)</label><br />
-      <input id="simkl_pin" value="" />
+      <div style="display: none">
+        <label for="simkl_pin">Simkl Code (Copy this)</label><br />
+        <input id="simkl_pin" value="" />
+      </div>
       <p id="simkl_log" style="color: yellow"></p>
       After you are done come back and click this
       <input id="simkl_verify" type="submit" value="Submit" />
@@ -64,52 +70,78 @@
       const formStremioCredentials = document.getElementById(
         "stremio_credentials",
       );
+      const stremio_link = document.getElementById("stremio_link");
+      const stremio_pin = document.getElementById("stremio_pin");
+      const stremio_verify = document.getElementById("stremio_verify");
+
       let stremio_credentials_error = document.getElementById(
         "stremio_credentials_error",
       );
+
       let stremio_authkeyInput = document.getElementById("stremio_authkey");
       let simkl_accesstokenInput = document.getElementById("simkl_accesstoken");
       let simkl_clientidInput = document.getElementById("simkl_clientid");
 
       const formSimklAuth = document.getElementById("simkl_auth");
       let simkl_auth_error = document.getElementById("simkl_auth_error");
+
       const divSimklAuthConfirm = document.getElementById("simkl_auth_confirm");
       let simkl_link = document.getElementById("simkl_link");
       let simkl_pin = document.getElementById("simkl_pin");
       let simkl_log = document.getElementById("simkl_log");
-
       let simkl_verify = document.getElementById("simkl_verify");
 
       const formSendToServer = document.getElementById("send_to_server");
 
-      formStremioCredentials.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const formData = new FormData(formStremioCredentials);
-
-        let credentialObject = {};
-
-        formData.forEach(function (value, key) {
-          credentialObject[key] = value;
+      fetch(`https://link.stremio.com/api/create?type=Create`, {
+        method: "GET",
+        mode: "cors",
+        cache: "no-cache",
+        referrerPolicy: "no-referrer",
+      })
+        .then((response) =>
+          response
+            .json()
+            .then((value) => {
+              if (value.result) {
+                stremio_pin.value = value.result.code;
+                stremio_link.innerHTML = value.result.link;
+                stremio_link.href = value.result.link;
+              } else {
+                stremio_credentials_error.innerHTML = JSON.stringify(
+                  value.error,
+                );
+              }
+            })
+            .catch((error) => {
+              stremio_credentials_error.innerHTML = JSON.stringify(error);
+            }),
+        )
+        .catch((error) => {
+          stremio_credentials_error.innerHTML = JSON.stringify(error);
         });
 
-        fetch("https://api.strem.io/api/login", {
-          method: "POST",
-          mode: "cors",
-          cache: "no-cache",
-          credentials: "same-origin",
-          headers: {
-            "Content-Type": "application/json",
+      stremio_verify.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        fetch(
+          `https://link.stremio.com/api/read?type=Read&code=${stremio_pin.value}`,
+          {
+            method: "GET",
+            mode: "cors",
+            cache: "no-cache",
+            credentials: "same-origin",
+            redirect: "follow",
+            referrerPolicy: "no-referrer",
           },
-          redirect: "follow",
-          referrerPolicy: "no-referrer",
-          body: JSON.stringify(credentialObject),
-        })
+        )
           .then((response) =>
             response
               .json()
               .then((value) => {
                 if (value.result) {
-                  stremio_authkeyInput.value = value.result.authKey;
+                  stremio_authkeyInput.value =
+                    value.result.authKey || value.result.auth_key;
                   formStremioCredentials.style.display = "none";
                   formSimklAuth.style.display = "";
                 } else {
@@ -158,8 +190,10 @@
               .then((value) => {
                 if (value.result) {
                   simkl_pin.value = value.user_code;
-                  simkl_link.innerHTML = value.verification_url;
-                  simkl_link.href = value.verification_url;
+                  simkl_link.innerHTML =
+                    value.verification_url + `/${value.user_code}`;
+                  simkl_link.href =
+                    value.verification_url + `/${value.user_code}`;
                   formSimklAuth.style.display = "none";
                   divSimklAuthConfirm.style.display = "";
                 } else {
