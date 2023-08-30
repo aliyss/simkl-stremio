@@ -1,11 +1,11 @@
 {
     "name": "stremio-simkl-addon",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "Allows for syncing with SIMKL",
     "main": "src/server.js",
     "scripts": {
         "build": "tsc; copyfiles ./src/public/*.html ./dist/",
-        "prepublish": "npm run build",
+        "prepublish": "rimraf dist",
         "beamup": "beamup-cli",
         "start": "node dist/src/server.js",
         "start:dev": "cross-env NODE_ENV=dev nodemon src/server.ts"
