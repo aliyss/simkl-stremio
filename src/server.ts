@@ -36,6 +36,11 @@ const createLog = (req: any, res: any, next: any) => {
   next();
 };
 
+app.get("/", (req: any, res: any) => {
+  const host = req.get("host");
+  res.redirect(`stremio://${host}/manifest.json`);
+});
+
 app.get("/manifest.json", (req: any, res: any) => {
   res.send({
     ...manifest,
@@ -104,6 +109,9 @@ app.get(
         timeout = parseInt(info.meta.runtime.split(" ")[0]) * 1000;
       }
 
+      const protocol = req.protocol;
+      const host = req.get("host");
+
       console.log(`Queued ${info?.meta.id} running in ${info?.meta.runtime}`);
       setTimeout(async function () {
         console.log("Syncing...");
@@ -118,7 +126,7 @@ app.get(
           if (authKey && authKey !== userConfig["stremio_authkey"]) {
             userConfig["stremio_authkey"] = authKey;
             await StremioAPIClient.updateAddonCollection(authKey, manifest.id, {
-              transportUrl: `http://127.0.0.1:7000/${Object.entries(userConfig)
+              transportUrl: `${protocol}://${host}/${Object.entries(userConfig)
                 .map((value) => value.join("-=-"))
                 .join("|")}/manifest.json`,
             });
@@ -138,10 +146,11 @@ app.get(
 app.use(createLog);
 
 app.post("/configure/submit", urlencodedParser, (req, res) => {
+  const host = req.get("host");
   res.redirect(
-    `stremio://localhost:7000/stremio_authkey-=-${req.body.stremio_authkey}|simkl_accesstoken-=-${req.body.simkl_accesstoken}|simkl_clientid-=-${req.body.simkl_clientid}/manifest.json`,
+    `stremio://${host}/stremio_authkey-=-${req.body.stremio_authkey}|simkl_accesstoken-=-${req.body.simkl_accesstoken}|simkl_clientid-=-${req.body.simkl_clientid}/manifest.json`,
   );
 });
 
 app.use("/public", express.static("public"));
-app.listen(process.env.PORT || 80);
+app.listen(process.env.PORT || 7000);
