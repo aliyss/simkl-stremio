@@ -88,7 +88,7 @@ export const startSync = async (
       userConfig["stremio_authkey"],
       userConfig["simkl_accesstoken"],
       userConfig["simkl_clientid"],
-      true,
+      false,
     );
     console.log("Sync Completed");
     if (authKey && authKey !== userConfig["stremio_authkey"]) {

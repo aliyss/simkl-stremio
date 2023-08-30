@@ -3,6 +3,5 @@
     "backfill_listmovies": false,
     "backfill_watchhistoryshows": true,
     "backfill_watchhistorymovies": true,
-    "backfill_modifylist": false,
-    "host": "56bca7d190fc-simkl-stremio.baby-beamup.club"
+    "backfill_modifylist": false
 }

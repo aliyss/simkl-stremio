@@ -33,7 +33,10 @@ export function convertFromStremioLibraryToSimklListMovie(
     title: stremio.name,
     ids: { imdb: stremio._id },
   };
-  if (stremio.state.flaggedWatched || stremio.state.timesWatched) {
+  if (
+    stremio.state.flaggedWatched ||
+    (stremio.state.lastWatched && stremio.state.timesWatched)
+  ) {
     movieObject.to = "completed";
     movieObject.watched_at = convertStremioDateToSimkl(
       stremio.state.lastWatched,
@@ -83,7 +86,6 @@ export function convertFromStremioLibraryToSimklList(
     if (!e.stremio) {
       continue;
     }
-    console.log(e.stremio.name);
     if (e.stremio.type === "movie") {
       let movie = convertFromStremioLibraryToSimklListMovie(e.stremio);
       if (movie) {
@@ -105,7 +107,7 @@ export function convertFromStremioLibraryToSimklWatchHistoryMovie(
   let movieObject: SimklMovieAddToList = {
     ids: { imdb: stremio._id },
   };
-  if (stremio.state.flaggedWatched || stremio.state.timesWatched) {
+  if (stremio.state.flaggedWatched && stremio.state.timesWatched) {
     movieObject.watched_at = convertStremioDateToSimkl(
       stremio.state.lastWatched,
     );
@@ -243,7 +245,6 @@ export async function convertFromStremioLibraryToSimklWatchHistory(
     if (!e.stremio) {
       continue;
     }
-    console.log(e.stremio.name);
     if (e.stremio.type === "movie") {
       const movie = convertFromStremioLibraryToSimklWatchHistoryMovie(
         e.stremio,

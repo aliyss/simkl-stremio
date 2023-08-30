@@ -1,46 +1,69 @@
-
-* Table of Contents :toc:
+* Table of Contents                                                     :toc:
 - [[#info][Info]]
   - [[#todo][ToDo]]
-- [[#setup][Setup]]
+- [[#use-the-addon][Use the Addon]]
+- [[#modify-and-build-yourself][Modify and Build yourself]]
 - [[#what-else][What else?]]
 
 * Info
 Allows for a One-Way Sync from Stremio to Simkl. Plan is to have a Two-Way Sync
 
-*** Warning
-Currently the sync will by default not update the list unless _SIMKL_BACKFILL_MODIFYLIST_ is set to true.
+*** Help
+If you want to help, I have two things I need to figure out:
 
-However there are some checks in place for backfilling:
- * List Update: Ignored if Simkl already marked as complete
- * List Update: Ignored if Simkl already has the item and _SIMKL_BACKFILL_MODIFYLIST_ is false
- * Watch History Update (Movie): Ignored if Simkl already marked as complete
- * Watch History Update (Show): Ignored if Simkl lastWatched is greater than Stremio
+**** How to manage small diffs
+I only want to sync necessary stuff, so a mapping would be nice like:
+
+#+begin_src typescript
+  if (symkl.last_watched_at > stremio.state.lastWatched) {
+    return false
+  }
+#+end_src
+
+**** How to manage mapping
+I want to map the info as correctly as possible, so a mapping would look like:
+
+#+begin_src typescript
+  if (stremio.state.flaggedAsWatched) {
+    symkl.to = "completed"
+  }
+#+end_src
+
+*** Warning
+Some Syncing may not work as expected. I really tried to manage it as well as possible. The addon works for me, but I really can't take any responsibility.
+
+There are some checks in place for backfilling:
+- List Update: Ignored if Simkl already marked as complete
+- Watch History Update (Movie): Ignored if Simkl already marked as complete
+- Watch History Update (Show): Ignored if Simkl lastWatched is greater than Stremio
 
 I plan on adding more checks to limit and only process necessary items:
- * If you have any more checks to recommend feel free to open an issue.
+- If you have any more checks to recommend feel free to open an issue.
 
 ** ToDo
- * [X] Only sync actual diffs
- * [ ] Sync Lists from Simkl to Stremio
- * [ ] Sync History from Simkl to Stremio
- * [X] Sync Lists from Stremio to Simkl
- * [X] Sync History from Stremio to Simkl
- * [ ] Stremio listen to stream events and update Simkl live
+- [X] Only sync actual diffs
+- [ ] Sync Lists from Simkl to Stremio
+- [ ] Sync History from Simkl to Stremio
+- [X] Sync Lists from Stremio to Simkl
+- [X] Sync History from Stremio to Simkl
+- [ ] Stremio listen to stream events and update Simkl live
 
-* Setup
+* Use the Addon
+[[https://56bca7d190fc-simkl-stremio.baby-beamup.club/][Click here!]]
+
+* Modify and Build yourself
 
 *** Build
 
 #+begin_src bash
-npm install
-npm run build
+  npm install
+  npm run build
 #+end_src
 
 *** Start
 Start the program. Then go to http://localhost:7000/configure
 #+begin_src bash
-npm run start
+  npm run start
 #+end_src
 
 *** Sync
@@ -49,20 +72,19 @@ In case at some point syncing stops due to an invalid authKey restart stremio an
 If it still fails open an issue with some details so I can check it out.
 
 *** Options
-Following Options are available:
+Following Options are also available (check the source code):
 #+begin_src env
-SIMKL_BACKFILL_LISTSHOWS=true # Option if it should sync shows to simkl list on boot
-SIMKL_BACKFILL_LISTMOVIES=true # Option if it should sync movies to simkl list on boot
-SIMKL_BACKFILL_WATCHHISTORYSHOWS=true # Option if it should sync shows to simkl history on boot
-SIMKL_BACKFILL_WATCHHISTORYMOVIES=true # Option if it should sync movies to simkl history on boot
+  SIMKL_BACKFILL_LISTSHOWS=true # Option if it should sync shows to simkl list on boot
+  SIMKL_BACKFILL_LISTMOVIES=true # Option if it should sync movies to simkl list on boot
+  SIMKL_BACKFILL_WATCHHISTORYSHOWS=true # Option if it should sync shows to simkl history on boot
+  SIMKL_BACKFILL_WATCHHISTORYMOVIES=true # Option if it should sync movies to simkl history on boot
 
-# If this is enabled it will add shows and movies to the list, but also move them around on simkl using stremio as the leader.
-SIMKL_BACKFILL_MODIFYLIST=false
+  # If this is enabled it will add shows and movies to the list, but also move them around on simkl using stremio as the leader.
+  SIMKL_BACKFILL_MODIFYLIST=false
 
-# If this is enabled it will disregard specific watched episodes for shows, but instead mark all previous shows before the current as watched.
-# Use this if you more often than not forget to mark episodes as watched.
-SIMKL_BACKFILL_LASTEPISODEFILL=false
-
+  # If this is enabled it will disregard specific watched episodes for shows, but instead mark all previous shows before the current as watched.
+  # Use this if you more often than not forget to mark episodes as watched.
+  SIMKL_BACKFILL_LASTEPISODEFILL=false
 #+end_src
 
 * What else?

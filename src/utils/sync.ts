@@ -54,13 +54,13 @@ function stremioToSimklListSyncLogic(
     if (!value.simkl) {
       return true;
     }
+    if (value.simkl.status === "completed") {
+      return;
+    }
     if (
       (simklSettings.backfill_listmovies || force) &&
       value.stremio.type === "movie"
     ) {
-      if (value.simkl.status === "completed") {
-        return;
-      }
       if (simklSettings.backfill_modifylist) {
         return true;
       }

@@ -1,7 +1,0 @@
-{
-    "backfill_listshows": false,
-    "backfill_listmovies": false,
-    "backfill_watchhistoryshows": true,
-    "backfill_watchhistorymovies": true,
-    "backfill_modifylist": false,
-}
