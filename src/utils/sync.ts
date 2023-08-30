@@ -6,14 +6,9 @@ import {
 } from "./convert";
 import { SimklAPIClient, SimklLibraryObject } from "./simkl";
 import { StremioAPIClient, StremioLibraryObject } from "./stremio";
+import config from "../../config.json";
 
-const simklSettings = {
-  backfill_listshows: false,
-  backfill_listmovies: false,
-  backfill_watchhistoryshows: true,
-  backfill_watchhistorymovies: true,
-  backfill_modifylist: false,
-};
+const simklSettings = config;
 
 export interface GroupedStremioWithSimklObject {
   stremio?: StremioLibraryObject;
