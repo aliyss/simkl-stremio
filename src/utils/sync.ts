@@ -54,9 +54,6 @@ function stremioToSimklListSyncLogic(
     if (!value.simkl) {
       return true;
     }
-    if (value.simkl.status === "completed") {
-      return;
-    }
     if (
       (simklSettings.backfill_listmovies || force) &&
       value.stremio.type === "movie"
@@ -68,6 +65,12 @@ function stremioToSimklListSyncLogic(
         value.simkl.last_watched_at &&
         new Date(convertStremioDateToSimkl(value.stremio.state.lastWatched)) <
           new Date(value.simkl.last_watched_at)
+      ) {
+        return false;
+      }
+      if (
+        value.simkl.status === "plantowatch" &&
+        !value.stremio.state.flaggedWatched
       ) {
         return;
       }
@@ -146,27 +149,21 @@ export async function backfillFromStremioToSimkl(
     convertSimklLibraryToSimklLibraryObjectArray(simklLibrary),
   );
 
-  if (
-    simklSettings.backfill_listshows ||
-    simklSettings.backfill_listmovies ||
-    force
-  ) {
-    let backfillToList = convertFromStremioLibraryToSimklList(
-      groupedLibrary,
-      stremioToSimklListSyncLogic(force),
-    );
+  let backfillToList = convertFromStremioLibraryToSimklList(
+    groupedLibrary,
+    stremioToSimklListSyncLogic(force),
+  );
 
-    await SimklAPIClient.updateShowsList(
-      accessToken,
-      clientId,
-      backfillToList.movies,
-    );
-    await SimklAPIClient.updateShowsList(
-      accessToken,
-      clientId,
-      backfillToList.shows,
-    );
-  }
+  await SimklAPIClient.updateShowsList(
+    accessToken,
+    clientId,
+    backfillToList.movies,
+  );
+  await SimklAPIClient.updateShowsList(
+    accessToken,
+    clientId,
+    backfillToList.shows,
+  );
 
   if (
     simklSettings.backfill_watchhistoryshows ||

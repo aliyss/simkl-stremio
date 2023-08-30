@@ -92,7 +92,7 @@ export function convertFromStremioLibraryToSimklList(
         movies.push(movie);
       }
     } else if (e.stremio.type === "series") {
-      let show = convertFromStremioLibraryToSimklListMovie(e.stremio);
+      let show = convertFromStremioLibraryToSimklListShow(e.stremio);
       if (show) {
         shows.push(show);
       }
@@ -107,10 +107,15 @@ export function convertFromStremioLibraryToSimklWatchHistoryMovie(
   let movieObject: SimklMovieAddToList = {
     ids: { imdb: stremio._id },
   };
-  if (stremio.state.flaggedWatched && stremio.state.timesWatched) {
+  if (
+    stremio.state.flaggedWatched ||
+    (stremio.state.lastWatched && stremio.state.timesWatched)
+  ) {
     movieObject.watched_at = convertStremioDateToSimkl(
       stremio.state.lastWatched,
     );
+  } else {
+    return undefined;
   }
   return movieObject;
 }
