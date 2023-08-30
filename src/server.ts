@@ -38,6 +38,10 @@ const createLog = (req: any, res: any, next: any) => {
 
 app.get("/", (req: any, res: any) => {
   const host = req.get("host");
+  console.log(req.hostname);
+  console.log(req.headers.host);
+  console.log(req.header("host"));
+  console.log(host);
   res.redirect(`stremio://${host}/manifest.json`);
 });
 
