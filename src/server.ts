@@ -9,7 +9,10 @@ import { backfillFromStremioToSimkl } from "./utils/sync";
 const app = express();
 
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
-const host = "56bca7d190fc-simkl-stremio.baby-beamup.club";
+const host =
+  process.env.NODE_ENV !== "dev"
+    ? "56bca7d190fc-simkl-stremio.baby-beamup.club"
+    : "localhost:7000";
 
 app.get("/configure", (_, res) => {
   res.sendFile(path.join(__dirname, "./public/index.html"));
@@ -38,10 +41,7 @@ const createLog = (req: any, res: any, next: any) => {
 };
 
 app.get("/", (req: any, res: any) => {
-  res.setHeader("Content-Type", "text/html");
-  res.send(`
-  <a href="stremio://${host}/manifest.json">Click here</a>
-  `);
+  res.redirect(`stremio://${host}/manifest.json`);
 });
 
 app.get("/manifest.json", (req: any, res: any) => {
@@ -78,6 +78,31 @@ app.get("/:config(*)/stream/:type/:id.json", (req: any, res: any) => {
     streams: [],
   });
 });
+
+export const startSync = async (
+  userConfig: Record<string, string>,
+  protocol: string,
+) => {
+  try {
+    let { authKey } = await backfillFromStremioToSimkl(
+      userConfig["stremio_authkey"],
+      userConfig["simkl_accesstoken"],
+      userConfig["simkl_clientid"],
+      true,
+    );
+    console.log("Sync Completed");
+    if (authKey && authKey !== userConfig["stremio_authkey"]) {
+      userConfig["stremio_authkey"] = authKey;
+      await StremioAPIClient.updateAddonCollection(authKey, manifest.id, {
+        transportUrl: `${protocol}://${host}/${Object.entries(userConfig)
+          .map((value) => value.join("-=-"))
+          .join("|")}/manifest.json`,
+      });
+    }
+  } catch (e) {
+    console.log(e);
+  }
+};
 
 app.get(
   "/:config(*)/subtitles/:type/:id/:rest(*)",
@@ -117,25 +142,7 @@ app.get(
       console.log(`Queued ${info?.meta.id} running in ${info?.meta.runtime}`);
       setTimeout(async function () {
         console.log("Syncing...");
-        try {
-          let { authKey } = await backfillFromStremioToSimkl(
-            userConfig["stremio_authkey"],
-            userConfig["simkl_accesstoken"],
-            userConfig["simkl_clientid"],
-            true,
-          );
-          console.log("Sync Completed");
-          if (authKey && authKey !== userConfig["stremio_authkey"]) {
-            userConfig["stremio_authkey"] = authKey;
-            await StremioAPIClient.updateAddonCollection(authKey, manifest.id, {
-              transportUrl: `${protocol}://${host}/${Object.entries(userConfig)
-                .map((value) => value.join("-=-"))
-                .join("|")}/manifest.json`,
-            });
-          }
-        } catch (e) {
-          console.log(e);
-        }
+        await startSync(userConfig, protocol);
       }, timeout);
     } catch (e) {}
 
@@ -147,11 +154,19 @@ app.get(
 
 app.use(createLog);
 
-app.post("/configure/submit", urlencodedParser, (req: any, res: any) => {
-  res.setHeader("Content-Type", "text/html");
-  res.send(`
-    <a href="stremio://${host}/stremio_authkey-=-${req.body.stremio_authkey}|simkl_accesstoken-=-${req.body.simkl_accesstoken}|simkl_clientid-=-${req.body.simkl_clientid}/manifest.json">Click here!</a>,
-  `);
+app.post("/configure/submit", urlencodedParser, async (req: any, res: any) => {
+  const protocol = req.protocol;
+  res.redirect(
+    `stremio://${host}/stremio_authkey-=-${req.body.stremio_authkey}|simkl_accesstoken-=-${req.body.simkl_accesstoken}|simkl_clientid-=-${req.body.simkl_clientid}/manifest.json`,
+  );
+  await startSync(
+    {
+      stremio_authkey: req.body.stremio_authkey,
+      simkl_accesstoken: req.body.simkl_accesstoken,
+      simkl_clientid: req.body.simkl_clientid,
+    },
+    protocol,
+  );
 });
 
 app.use("/public", express.static("public"));

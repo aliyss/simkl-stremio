@@ -45,30 +45,51 @@ function groupStremioWithSimkl(
 }
 
 function stremioToSimklListSyncLogic(
-  value: GroupedStremioWithSimklObject,
-): boolean | void {
-  if (!value.stremio) {
-    return;
-  }
-  if (simklSettings.backfill_listmovies && value.stremio.type === "movie") {
-    if (!value.simkl) {
-      return true;
-    }
-    if (value.simkl.status === "completed") {
+  force: boolean,
+): (value: GroupedStremioWithSimklObject) => boolean | void {
+  return (value: GroupedStremioWithSimklObject): boolean | void => {
+    if (!value.stremio) {
       return;
     }
-    if (simklSettings.backfill_modifylist) {
-      return true;
-    }
-  }
-  if (simklSettings.backfill_listshows && value.stremio.type === "series") {
     if (!value.simkl) {
       return true;
     }
-    if (simklSettings.backfill_modifylist) {
+    if (
+      (simklSettings.backfill_listmovies || force) &&
+      value.stremio.type === "movie"
+    ) {
+      if (value.simkl.status === "completed") {
+        return;
+      }
+      if (simklSettings.backfill_modifylist) {
+        return true;
+      }
+      if (
+        value.simkl.last_watched_at &&
+        new Date(convertStremioDateToSimkl(value.stremio.state.lastWatched)) <
+          new Date(value.simkl.last_watched_at)
+      ) {
+        return;
+      }
       return true;
     }
-  }
+    if (
+      (simklSettings.backfill_listshows || force) &&
+      value.stremio.type === "series"
+    ) {
+      if (simklSettings.backfill_modifylist) {
+        return true;
+      }
+      if (
+        value.simkl.last_watched_at &&
+        new Date(convertStremioDateToSimkl(value.stremio.state.lastWatched)) <
+          new Date(value.simkl.last_watched_at)
+      ) {
+        return;
+      }
+      return true;
+    }
+  };
 }
 
 function stremioToSimklWatchHistorySyncLogic(
@@ -132,7 +153,7 @@ export async function backfillFromStremioToSimkl(
   ) {
     let backfillToList = convertFromStremioLibraryToSimklList(
       groupedLibrary,
-      stremioToSimklListSyncLogic,
+      stremioToSimklListSyncLogic(force),
     );
 
     await SimklAPIClient.updateShowsList(

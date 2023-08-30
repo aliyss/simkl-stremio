@@ -83,6 +83,7 @@ export function convertFromStremioLibraryToSimklList(
     if (!e.stremio) {
       continue;
     }
+    console.log(e.stremio.name);
     if (e.stremio.type === "movie") {
       let movie = convertFromStremioLibraryToSimklListMovie(e.stremio);
       if (movie) {
@@ -242,6 +243,7 @@ export async function convertFromStremioLibraryToSimklWatchHistory(
     if (!e.stremio) {
       continue;
     }
+    console.log(e.stremio.name);
     if (e.stremio.type === "movie") {
       const movie = convertFromStremioLibraryToSimklWatchHistoryMovie(
         e.stremio,
