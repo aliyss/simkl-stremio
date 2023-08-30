@@ -38,7 +38,10 @@ const createLog = (req: any, res: any, next: any) => {
 };
 
 app.get("/", (req: any, res: any) => {
-  res.redirect(`stremio://${host}/manifest.json`);
+  res.setHeader("Content-Type", "text/html");
+  res.send(`
+  <a href="stremio://${host}/manifest.json">Click here</a>
+  `);
 });
 
 app.get("/manifest.json", (req: any, res: any) => {
@@ -145,10 +148,11 @@ app.get(
 app.use(createLog);
 
 app.post("/configure/submit", urlencodedParser, (req: any, res: any) => {
-  res.redirect(
-    `stremio://${host}/stremio_authkey-=-${req.body.stremio_authkey}|simkl_accesstoken-=-${req.body.simkl_accesstoken}|simkl_clientid-=-${req.body.simkl_clientid}/manifest.json`,
-  );
+  res.setHeader("Content-Type", "text/html");
+  res.send(`
+    <a href="stremio://${host}/stremio_authkey-=-${req.body.stremio_authkey}|simkl_accesstoken-=-${req.body.simkl_accesstoken}|simkl_clientid-=-${req.body.simkl_clientid}/manifest.json">Click here!</a>,
+  `);
 });
 
 app.use("/public", express.static("public"));
-app.listen(process.env.PORT || 80);
+app.listen(process.env.PORT || 7000);
