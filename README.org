@@ -1,9 +1,15 @@
 * Table of Contents                                                     :toc:
+- [[#warning][WARNING]]
 - [[#info][Info]]
   - [[#todo][ToDo]]
 - [[#use-the-addon][Use the Addon]]
+  - [[#getting-the-client-id-from-simkl][Getting the Client Id from Simkl]]
 - [[#modify-and-build-yourself][Modify and Build yourself]]
 - [[#what-else][What else?]]
+
+* WARNING
+I cannot stress enough... Use this if you don't mind changes to your simkl. I have not tested everything.
+It works for me currently. It's a syncing addon which may not work as expected, because of what I need in the "Help" Section.
 
 * Info
 Allows for a One-Way Sync from Stremio to Simkl. Plan is to have a Two-Way Sync
@@ -50,6 +56,11 @@ I plan on adding more checks to limit and only process necessary items:
 
 * Use the Addon
 [[https://56bca7d190fc-simkl-stremio.baby-beamup.club/][Click here!]]
+
+** Getting the Client Id from Simkl
+ 1. GoTo: [[https://simkl.com/settings/developer/new/]]
+ 2. Create an app
+ 3. Redirect URI: [[https://simkl.com/]]
 
 * Modify and Build yourself
 
