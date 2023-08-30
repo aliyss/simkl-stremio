@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getEnvValue, setEnvValue } from "./environment";
+import { Manifest } from "stremio-addon-sdk";
 
 export interface StremioCredentials {
   email: string;
@@ -7,40 +7,16 @@ export interface StremioCredentials {
 }
 
 export class StremioAPIClient {
-  authKey: string = "";
-  library: StremioLibraryObject[] = [];
-
-  constructor() {
-    this.authKey = getEnvValue("STREMIO_AUTHKEY") || "";
-  }
-
-  async init() {
-    // this.authKey = await StremioAPIClient.updateAuthKeyWithAuthKey();
-    return this;
-  }
-
-  static validateCredentialsFromEnv(): StremioCredentials {
-    const email = getEnvValue("STREMIO_EMAIL");
-    const password = getEnvValue("STREMIO_PASSWORD");
-    if (!email || !password) {
-      throw new Error(
-        "Reauthenticate by setting STREMIO_EMAIL & STREMIO_PASSWORD in your .env file",
-      );
-    }
-    return {
-      email,
-      password,
-    };
-  }
+  constructor() {}
 
   static async updateAuthKeyWithCredentials(
-    creds?: StremioCredentials,
+    creds: StremioCredentials,
   ): Promise<string> {
     const {
       data: { result, error },
     } = await axios.post<{ result?: { authKey: string }; error?: any }>(
       "https://api.strem.io/api/login",
-      creds ? creds : StremioAPIClient.validateCredentialsFromEnv(),
+      creds,
       {
         headers: {
           "Content-Type": "application/json",
@@ -53,15 +29,17 @@ export class StremioAPIClient {
       );
       throw new Error(error);
     }
-    setEnvValue("STREMIO_AUTHKEY", result.authKey);
     return result.authKey;
   }
 
   static async updateAuthKeyWithAuthKey(
-    authKey = getEnvValue("STREMIO_AUTHKEY"),
+    authKey: string,
+    creds?: StremioCredentials,
   ): Promise<string> {
-    if (!authKey) {
-      return StremioAPIClient.updateAuthKeyWithCredentials();
+    if (!authKey && creds) {
+      return StremioAPIClient.updateAuthKeyWithCredentials(creds);
+    } else if (!authKey) {
+      throw new Error("No valid Auth Key or Credentials");
     }
     const {
       data: { result },
@@ -74,17 +52,18 @@ export class StremioAPIClient {
         },
       },
     );
-    if (!result || !result.authKey) {
-      return StremioAPIClient.updateAuthKeyWithCredentials();
+    if ((!result || !result.authKey) && creds) {
+      return StremioAPIClient.updateAuthKeyWithCredentials(creds);
+    } else if (!result || !result.authKey) {
+      throw new Error("No valid Auth Key or Credentials");
     }
-    setEnvValue("STREMIO_AUTHKEY", result.authKey);
     return result.authKey;
   }
 
-  async getLibrary(
-    authKey = this.authKey,
+  static async getLibrary(
+    authKey: string,
     retry = false,
-  ): Promise<StremioLibraryObject[]> {
+  ): Promise<{ result: StremioLibraryObject[]; authKey: string }> {
     let {
       data: { result, error },
     } = await axios.post<{ result: StremioLibraryObject[]; error: any }>(
@@ -102,13 +81,98 @@ export class StremioAPIClient {
       },
     );
     if (!result && !retry) {
-      this.authKey = await StremioAPIClient.updateAuthKeyWithAuthKey(authKey);
-      return this.getLibrary(this.authKey, true);
+      authKey = await StremioAPIClient.updateAuthKeyWithAuthKey(authKey);
+      return StremioAPIClient.getLibrary(authKey, true);
     } else if (!result) {
       throw new Error(JSON.stringify(error));
     }
-    this.library = result;
-    return this.library;
+    return { result, authKey };
+  }
+
+  static async getAddonCollection(
+    authKey: string,
+    retry = false,
+  ): Promise<{ result: StremioAddonCollection; authKey: string }> {
+    let {
+      data: { result, error },
+    } = await axios.post<{ result: StremioAddonCollection; error: any }>(
+      "https://api.strem.io/api/addonCollectionGet",
+      {
+        addFromURL: [],
+        authKey,
+        update: true,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    if (!result && !retry) {
+      authKey = await StremioAPIClient.updateAuthKeyWithAuthKey(authKey);
+      return StremioAPIClient.getAddonCollection(authKey, true);
+    } else if (!result) {
+      throw new Error(JSON.stringify(error));
+    }
+    return {
+      result,
+      authKey,
+    };
+  }
+
+  static async setAddonCollection(
+    authKey: string,
+    retry = false,
+    data: StremioAddon[],
+  ): Promise<{ result: { success: boolean }; authKey: string }> {
+    let {
+      data: { result, error },
+    } = await axios.post<{ result: { success: boolean }; error: any }>(
+      "https://api.strem.io/api/addonCollectionSet",
+      {
+        addons: data,
+        authKey,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!result && !retry) {
+      authKey = await StremioAPIClient.updateAuthKeyWithAuthKey(authKey);
+      return StremioAPIClient.setAddonCollection(authKey, true, data);
+    } else if (!result || !result.success) {
+      throw new Error(JSON.stringify(error));
+    }
+
+    return {
+      result,
+      authKey,
+    };
+  }
+
+  static async updateAddonCollection(
+    authKey: string,
+    id: string,
+    data: StremioAddonBuilder,
+  ) {
+    const addonGetResult = await StremioAPIClient.getAddonCollection(authKey);
+    authKey = addonGetResult.authKey;
+    for (let i = 0; i < addonGetResult.result.addons.length; i++) {
+      if (addonGetResult.result.addons[i].manifest.id === id) {
+        addonGetResult.result.addons[i] = {
+          ...addonGetResult.result.addons[i],
+          ...data,
+        };
+      }
+    }
+    return await StremioAPIClient.setAddonCollection(
+      authKey,
+      true,
+      addonGetResult.result.addons,
+    );
   }
 
   static async getCinemetaMeta(id: string, type = "series") {
@@ -126,6 +190,25 @@ export class StremioAPIClient {
       console.log(e);
     }
   }
+}
+
+export interface StremioAddonBuilder {
+  transportUrl?: string;
+  transportName?: string;
+  manifest?: Manifest;
+  flags?: any;
+}
+
+export interface StremioAddon {
+  transportUrl: string;
+  transportName: string;
+  manifest: Manifest;
+  flags: any;
+}
+
+export interface StremioAddonCollection {
+  lastModified: string;
+  addons: StremioAddon[];
 }
 
 export interface StremioCinemataMetaSeriesData {

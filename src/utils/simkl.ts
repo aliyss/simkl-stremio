@@ -1,36 +1,10 @@
 import axios from "axios";
-import { getEnvValue, setEnvValue } from "./environment";
 import { delay } from "./delay";
 
 export class SimklAPIClient {
-  id: string = "";
-  accessToken: string = "";
-  library: SimklLibrary = {
-    movies: [],
-    shows: [],
-  };
+  constructor() {}
 
-  constructor() {
-    this.id = SimklAPIClient.validateClientIdFromEnv();
-    this.accessToken = getEnvValue("SIMKL_ACCESSTOKEN") || "";
-  }
-
-  async init() {
-    this.accessToken = await this.updateAccessToken();
-    return this;
-  }
-
-  static validateClientIdFromEnv(): string {
-    const id = getEnvValue("SIMKL_CLIENTID");
-    if (!id) {
-      throw new Error(
-        "Reauthenticate by setting SIMKL_CLIENTID in your .env file",
-      );
-    }
-    return id;
-  }
-
-  async updateAccessTokenWithClientId(id: string = this.id): Promise<string> {
+  static async updateAccessTokenWithClientId(id: string): Promise<string> {
     const {
       data: { user_code, verification_url, expires_in, interval },
     } = await axios.get<{
@@ -38,11 +12,7 @@ export class SimklAPIClient {
       verification_url: string;
       expires_in: number;
       interval: number;
-    }>(
-      `https://api.simkl.com/oauth/pin?client_id=${
-        id ? id : SimklAPIClient.validateClientIdFromEnv()
-      }`,
-    );
+    }>(`https://api.simkl.com/oauth/pin?client_id=${id}`);
 
     if (!user_code || !verification_url) {
       console.warn(
@@ -76,7 +46,6 @@ export class SimklAPIClient {
         `https://api.simkl.com/oauth/pin/${user_code}?client_id=${id}`,
       );
       if (access_token) {
-        setEnvValue("SIMKL_ACCESSTOKEN", access_token);
         return access_token;
       }
     }
@@ -86,78 +55,98 @@ export class SimklAPIClient {
     );
   }
 
-  async updateAccessToken(accessToken = this.accessToken): Promise<string> {
+  static async updateAccessToken(
+    id: string,
+    accessToken?: string,
+  ): Promise<string> {
     if (!accessToken) {
-      return await this.updateAccessTokenWithClientId();
+      return await SimklAPIClient.updateAccessTokenWithClientId(id);
     }
     return accessToken;
   }
 
-  createSimklHeaders() {
+  static createSimklHeaders(accessToken: string, id: string) {
     return {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${this.accessToken}`,
-      "simkl-api-key": this.id,
+      Authorization: `Bearer ${accessToken}`,
+      "simkl-api-key": id,
     };
   }
 
-  async getLibrary() {
+  static async getLibrary(accessToken: string, id: string) {
     const { data } = await axios.get(`https://api.simkl.com/sync/all-items`, {
-      headers: this.createSimklHeaders(),
+      headers: SimklAPIClient.createSimklHeaders(accessToken, id),
     });
+    let library: SimklLibrary = { movies: [], shows: [] };
     if (data.movies && data.movies.length > 0) {
-      this.library.movies = data.movies;
+      library.movies = data.movies;
     }
     if (data.shows && data.shows.length > 0) {
-      this.library.shows = [...data.shows, ...data.anime];
+      library.shows = [...data.shows, ...data.anime];
     }
-    return this.library;
+    return library;
   }
 
-  async updateShowsList(shows: SimklShowAddToList[]) {
+  static async updateShowsList(
+    accessToken: string,
+    id: string,
+    shows: SimklShowAddToList[],
+  ) {
     if (shows.length <= 0) {
       return;
     }
     const { data } = await axios.post(
       "https://api.simkl.com/sync/add-to-list",
       { shows: shows },
-      { headers: this.createSimklHeaders() },
+      { headers: SimklAPIClient.createSimklHeaders(accessToken, id) },
     );
     return data;
   }
 
-  async updateMoviesList(movies: SimklMovieAddToList[]) {
+  static async updateMoviesList(
+    accessToken: string,
+    id: string,
+    movies: SimklMovieAddToList[],
+  ) {
     if (movies.length <= 0) {
       return;
     }
     const { data } = await axios.post(
       "https://api.simkl.com/sync/add-to-list",
       { movies: movies },
-      { headers: this.createSimklHeaders() },
+      { headers: SimklAPIClient.createSimklHeaders(accessToken, id) },
     );
     return data;
   }
 
-  async updateShowsHistory(shows: SimklShowAddToList[]) {
+  static async updateShowsHistory(
+    accessToken: string,
+    id: string,
+    shows: SimklShowAddToList[],
+  ) {
     if (shows.length <= 0) {
       return;
     }
     const { data } = await axios.post(
       "https://api.simkl.com/sync/history",
       { shows: shows },
-      { headers: this.createSimklHeaders() },
+      { headers: SimklAPIClient.createSimklHeaders(accessToken, id) },
     );
     return data;
   }
 
-  async updateMoviesHistory(movies: SimklMovieAddToList[]) {
+  static async updateMoviesHistory(
+    accessToken: string,
+    id: string,
+    movies: SimklMovieAddToList[],
+  ) {
     if (movies.length <= 0) {
       return;
     }
     const { data } = await axios.post(
       "https://api.simkl.com/sync/history",
       { movies: movies },
-      { headers: this.createSimklHeaders() },
+      { headers: SimklAPIClient.createSimklHeaders(accessToken, id) },
     );
     return data;
   }

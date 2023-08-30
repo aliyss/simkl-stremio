@@ -38,22 +38,19 @@ npm run build
 #+end_src
 
 *** Start
-Start the program. It will automatically generate a .env file and crash. Add your Stremio Credentials (these can be removed later on afaik). Then restart the application.
+Start the program. Then go to http://localhost:7000/configure
 #+begin_src bash
 npm run start
 #+end_src
 
+*** Sync
+The syncing will start the moment you finish your first watched episode. You can check the console for successfull syncs.
+In case at some point syncing stops due to an invalid authKey restart stremio and watch another episode for now.
+If it still fails open an issue with some details so I can check it out.
+
 *** Options
 Following Options are available:
 #+begin_src env
-
-STREMIO_EMAIL=    # Fill this in manually
-STREMIO_PASSWORD= # Fill this in manually
-STREMIO_AUTHKEY=  # Not Necessary will be done automatically
-
-SIMKL_CLIENTID=    # Now Necessary, due to the CLIENTID hitting it's rate limit
-SIMKL_ACCESSTOKEN= # Not Necessary will be done automatically
-
 SIMKL_BACKFILL_LISTSHOWS=true # Option if it should sync shows to simkl list on boot
 SIMKL_BACKFILL_LISTMOVIES=true # Option if it should sync movies to simkl list on boot
 SIMKL_BACKFILL_WATCHHISTORYSHOWS=true # Option if it should sync shows to simkl history on boot

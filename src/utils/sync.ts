@@ -4,19 +4,11 @@ import {
   convertSimklLibraryToSimklLibraryObjectArray,
   convertStremioDateToSimkl,
 } from "./convert";
-import { getEnvValue } from "./environment";
 import { SimklAPIClient, SimklLibraryObject } from "./simkl";
 import { StremioAPIClient, StremioLibraryObject } from "./stremio";
+import config from "../../config.json";
 
-const simklSettings = {
-  backfill_listshows: getEnvValue("SIMKL_BACKFILL_LISTSHOWS") === "true",
-  backfill_listmovies: getEnvValue("SIMKL_BACKFILL_LISTMOVIES") === "true",
-  backfill_watchhistoryshows:
-    getEnvValue("SIMKL_BACKFILL_WATCHHISTORYSHOWS") === "true",
-  backfill_watchhistorymovies:
-    getEnvValue("SIMKL_BACKFILL_WATCHHISTORYMOVIES") === "true",
-  backfill_modifylist: getEnvValue("SIMKL_BACKFILL_MODIFYLIST") === "true",
-};
+const simklSettings = config;
 
 export interface GroupedStremioWithSimklObject {
   stremio?: StremioLibraryObject;
@@ -119,12 +111,14 @@ function stremioToSimklWatchHistorySyncLogic(
 }
 
 export async function backfillFromStremioToSimkl(
-  stremioClient: StremioAPIClient,
-  simklClient: SimklAPIClient,
+  authKey: string,
+  accessToken: string,
+  clientId: string,
   force = false,
 ) {
-  const stremioLibrary = await stremioClient.getLibrary();
-  const simklLibrary = await simklClient.getLibrary();
+  const { result: stremioLibrary, authKey: newAuthKey } =
+    await StremioAPIClient.getLibrary(authKey);
+  const simklLibrary = await SimklAPIClient.getLibrary(accessToken, clientId);
 
   const groupedLibrary = groupStremioWithSimkl(
     stremioLibrary,
@@ -141,8 +135,16 @@ export async function backfillFromStremioToSimkl(
       stremioToSimklListSyncLogic,
     );
 
-    await simklClient.updateMoviesList(backfillToList.movies);
-    await simklClient.updateShowsList(backfillToList.shows);
+    await SimklAPIClient.updateShowsList(
+      accessToken,
+      clientId,
+      backfillToList.movies,
+    );
+    await SimklAPIClient.updateShowsList(
+      accessToken,
+      clientId,
+      backfillToList.shows,
+    );
   }
 
   if (
@@ -156,7 +158,17 @@ export async function backfillFromStremioToSimkl(
         stremioToSimklWatchHistorySyncLogic,
       );
 
-    await simklClient.updateMoviesHistory(backfillToWatchHistory.movies);
-    await simklClient.updateShowsHistory(backfillToWatchHistory.shows);
+    await SimklAPIClient.updateMoviesHistory(
+      accessToken,
+      clientId,
+      backfillToWatchHistory.movies,
+    );
+    await SimklAPIClient.updateShowsHistory(
+      accessToken,
+      clientId,
+      backfillToWatchHistory.shows,
+    );
   }
+
+  return { authKey: newAuthKey || authKey, accessToken, clientId };
 }
