@@ -6,6 +6,7 @@
     "scripts": {
         "build": "tsc; copyfiles ./src/public/*.html ./dist/",
         "prepublish": "npm run build",
+        "beamup": "beamup-cli",
         "start": "node dist/src/server.js",
         "start:dev": "cross-env NODE_ENV=dev nodemon src/server.ts"
     },
@@ -26,6 +27,7 @@
         "@tsconfig/node18": "^1.0.1",
         "@types/node": "^18.15.11",
         "@types/stremio-addon-sdk": "^1.6.6",
+        "beamup-cli": "^1.2.4",
         "copyfiles": "^2.4.1",
         "cross-env": "^7.0.3",
         "nodemon": "^2.0.22",

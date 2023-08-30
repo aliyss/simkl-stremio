@@ -144,4 +144,4 @@ app.post("/configure/submit", urlencodedParser, (req, res) => {
 });
 
 app.use("/public", express.static("public"));
-app.listen(7000);
+app.listen(process.env.PORT || 80);
