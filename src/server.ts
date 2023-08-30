@@ -37,11 +37,11 @@ const createLog = (req: any, res: any, next: any) => {
 };
 
 app.get("/", (req: any, res: any) => {
-  const host = req.get("host");
-  console.log(req.hostname);
-  console.log(req.headers.host);
-  console.log(req.header("host"));
-  console.log(host);
+  const host =
+    req.get("host") +
+    (req.get("host").toString().startsWith("localhost")
+      ? ""
+      : "baby-beamup.club");
   res.redirect(`stremio://${host}/manifest.json`);
 });
 
@@ -114,7 +114,11 @@ app.get(
       }
 
       const protocol = req.protocol;
-      const host = req.get("host");
+      const host =
+        req.get("host") +
+        (req.get("host").toString().startsWith("localhost")
+          ? ""
+          : "baby-beamup.club");
 
       console.log(`Queued ${info?.meta.id} running in ${info?.meta.runtime}`);
       setTimeout(async function () {
@@ -149,12 +153,16 @@ app.get(
 
 app.use(createLog);
 
-app.post("/configure/submit", urlencodedParser, (req, res) => {
-  const host = req.get("host");
+app.post("/configure/submit", urlencodedParser, (req: any, res: any) => {
+  const host =
+    req.get("host") +
+    (req.get("host").toString().startsWith("localhost")
+      ? ""
+      : "baby-beamup.club");
   res.redirect(
     `stremio://${host}/stremio_authkey-=-${req.body.stremio_authkey}|simkl_accesstoken-=-${req.body.simkl_accesstoken}|simkl_clientid-=-${req.body.simkl_clientid}/manifest.json`,
   );
 });
 
 app.use("/public", express.static("public"));
-app.listen(process.env.PORT || 80);
+app.listen(process.env.PORT || 7000);
