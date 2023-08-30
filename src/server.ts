@@ -101,7 +101,7 @@ app.get(
 
       let timeout = 0;
       if (info?.meta.runtime) {
-        timeout = parseInt(info.meta.runtime.split(" ")[0]) * 1000;
+        timeout = parseInt(info.meta.runtime.split(" ")[0]) * 60 * 1000;
       }
 
       console.log(`Queued ${info?.meta.id} running in ${info?.meta.runtime}`);
