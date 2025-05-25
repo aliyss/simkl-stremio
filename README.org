@@ -1,5 +1,6 @@
-> [!CAUTION]
-> Use https://github.com/aliyss/syncribullet instead
+* Deprecated
+
+Use https://github.com/aliyss/syncribullet instead
 
 * Table of Contents                                                     :toc:
 - [[#warning][WARNING]]
